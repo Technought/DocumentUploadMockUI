@@ -1,0 +1,176 @@
+<section
+  aria-label="Generation status"
+  class="relative flex h-full flex-col gap-6 border border-slate-800 bg-slate-900 p-6"
+>
+  <!-- HUD corner brackets, tinted with the current status colour -->
+  <span class="absolute -top-px -left-px size-3.5 border-t-2 border-l-2 border-tone"></span>
+  <span class="absolute -top-px -right-px size-3.5 border-t-2 border-r-2 border-tone"></span>
+  <span class="absolute -bottom-px -left-px size-3.5 border-b-2 border-l-2 border-tone"></span>
+  <span class="absolute -right-px -bottom-px size-3.5 border-r-2 border-b-2 border-tone"></span>
+
+  <h2 class="font-mono text-xs tracking-[0.18em] text-slate-400 uppercase">Status</h2>
+
+  <div class="flex flex-wrap items-center gap-8">
+    <!-- Ring -->
+    <div class="relative size-60 max-w-full shrink-0" [class.animate-shake]="store.isFailed()">
+      <div class="absolute inset-0 rounded-full border border-slate-800"></div>
+      <div
+        class="absolute inset-4 animate-[dg-spin_40s_linear_infinite] rounded-full border border-dashed border-slate-700"
+      ></div>
+
+      @switch (ring()) {
+        @case ('idle') {
+          <div class="absolute inset-10 rounded-full border border-slate-700"></div>
+        }
+        @case ('waiting') {
+          <div class="absolute inset-10 animate-breathe rounded-full border-2 border-tone"></div>
+          <div class="absolute inset-4 animate-[dg-spin_3.2s_linear_infinite]">
+            <div
+              class="absolute -top-[5px] left-1/2 -ml-[5px] size-2.5 rounded-full bg-tone shadow-[0_0_12px_var(--tone)]"
+            ></div>
+          </div>
+        }
+        @case ('processing') {
+          <div
+            class="absolute inset-10 animate-[dg-spin_1.1s_linear_infinite] rounded-full bg-[conic-gradient(from_0deg,transparent_30deg,var(--tone)_360deg)] mask-ring-8"
+          ></div>
+          <div
+            class="absolute inset-[58px] animate-[dg-spin_2.6s_linear_infinite_reverse] rounded-full border border-transparent border-y-tone opacity-50"
+          ></div>
+          <div class="absolute inset-4 animate-[dg-spin_2s_linear_infinite]">
+            <div
+              class="absolute -top-1 left-1/2 -ml-1 size-2 rounded-full bg-tone shadow-[0_0_12px_var(--tone)]"
+            ></div>
+          </div>
+        }
+        @case ('retrying') {
+          <div
+            class="absolute inset-10 animate-[dg-spin_8s_linear_infinite_reverse] rounded-full border-2 border-dashed border-tone"
+          ></div>
+          <div
+            class="absolute inset-[54px] animate-[dg-spin_1.8s_linear_infinite_reverse] rounded-full bg-[conic-gradient(from_0deg,var(--tone)_0deg,transparent_300deg)] mask-ring-5"
+          ></div>
+        }
+        @case ('ready') {
+          <div class="absolute inset-10 animate-ping-ring rounded-full border border-tone"></div>
+          <div
+            class="absolute inset-10 animate-pop-ring rounded-full border-[3px] border-tone"
+          ></div>
+        }
+        @case ('failed') {
+          <div class="absolute inset-10 rounded-full border-[3px] border-tone"></div>
+        }
+      }
+
+      <div class="absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-center">
+        @if (store.isReady()) {
+          <svg
+            class="size-14 text-ok"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path class="animate-draw [stroke-dasharray:40]" d="M5 12.5l4.5 4.5L19 7.5" />
+          </svg>
+        } @else if (store.isFailed()) {
+          <svg
+            class="size-14 text-err"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M7 7l10 10" />
+            <path d="M17 7L7 17" />
+          </svg>
+        } @else {
+          <p class="font-mono text-[32px] leading-none font-medium text-slate-50 tabular-nums">
+            {{ store.elapsed() }}
+          </p>
+        }
+        <p class="font-mono text-xs tracking-[0.2em] text-tone">{{ code() }}</p>
+      </div>
+    </div>
+
+    <div class="flex min-w-0 flex-[1_1_280px] flex-col gap-5">
+      <!-- role="status" announces each change to screen readers; the keyed @for replays the entrance. -->
+      <div role="status">
+        @for (phase of [store.phase()]; track phase) {
+          <div class="flex animate-rise flex-col gap-2">
+            <h3
+              class="text-[40px] leading-[1.1] font-bold tracking-[0.01em] text-balance text-tone"
+            >
+              {{ store.title() }}
+            </h3>
+            <p class="max-w-[46ch] text-pretty text-slate-300">{{ store.description() }}</p>
+          </div>
+        }
+      </div>
+
+      <ol class="flex items-start gap-2">
+        @for (step of steps(); track $index) {
+          <li class="flex min-w-0 flex-1 flex-col gap-2">
+            <div class="h-1 overflow-hidden bg-slate-800">
+              <div class="size-full" [class]="step.bar"></div>
+            </div>
+            <p class="font-mono text-xs tracking-wider uppercase wrap-anywhere" [class]="step.text">
+              {{ step.label }}
+            </p>
+          </li>
+        }
+      </ol>
+
+      @if (store.isReady()) {
+        <div class="flex animate-rise flex-col items-start gap-2 [animation-delay:0.25s]">
+          <button
+            type="button"
+            class="flex min-h-13 animate-glow cursor-pointer items-center gap-3 border border-ok bg-ok px-6 py-3 font-bold tracking-[0.08em] text-slate-950 uppercase transition-[filter] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50 disabled:cursor-progress disabled:opacity-70"
+            [disabled]="store.downloading()"
+            (click)="store.download()"
+          >
+            <svg
+              class="size-5 animate-bob-fast"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M12 4v12" />
+              <path d="M7 11l5 5 5-5" />
+              <path d="M5 20h14" />
+            </svg>
+            {{ store.downloading() ? 'Downloading' : 'Download .docx' }}
+          </button>
+          <p class="font-mono text-xs text-slate-400 wrap-anywhere">{{ store.outputName() }}</p>
+          @if (store.downloadError(); as error) {
+            <p role="alert" class="text-sm text-rose-300">{{ error }}</p>
+          }
+        </div>
+      }
+    </div>
+  </div>
+
+  <div class="flex flex-col gap-2.5 border-t border-slate-800 pt-5">
+    <h3 class="font-mono text-xs tracking-[0.18em] text-slate-400 uppercase">Event stream</h3>
+    @for (entry of store.events(); track $index) {
+      <div class="flex animate-rise flex-wrap gap-x-4 gap-y-0.5 font-mono text-[13px]">
+        <span class="text-slate-400 tabular-nums">{{ entry.at | date: 'HH:mm:ss' }}</span>
+        <span class="min-w-27 font-bold" [class]="logColor[entry.status]">{{ entry.status }}</span>
+        <span class="text-slate-300">{{ entry.message }}</span>
+      </div>
+    } @empty {
+      <p class="font-mono text-[13px] text-slate-400">
+        No events yet. Each status the server sends is listed here.
+      </p>
+    }
+  </div>
+</section>

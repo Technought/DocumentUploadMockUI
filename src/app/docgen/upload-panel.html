@@ -1,0 +1,163 @@
+<section
+  aria-label="Source file"
+  class="flex h-full flex-col gap-5 border border-slate-800 bg-slate-900 p-6"
+>
+  <h2 class="font-mono text-xs tracking-[0.18em] text-slate-400 uppercase">Source file</h2>
+
+  @if (store.file(); as file) {
+    <div class="flex animate-rise items-center gap-3 border border-slate-700 bg-slate-950 p-4">
+      <div
+        class="flex size-11 shrink-0 items-center justify-center border border-accent font-mono text-[11px] font-bold tracking-wider text-accent"
+      >
+        PDF
+      </div>
+      <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+        <p class="font-semibold wrap-anywhere">{{ file.name }}</p>
+        <p class="font-mono text-xs text-slate-400">{{ store.fileSize() }}</p>
+      </div>
+      @if (store.isIdle()) {
+        <button
+          type="button"
+          aria-label="Remove file"
+          class="flex size-11 shrink-0 cursor-pointer items-center justify-center border border-slate-700 text-slate-300 transition-colors hover:border-err hover:text-err focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50"
+          (click)="store.clearFile()"
+        >
+          <svg
+            class="size-[18px]"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M6 6l12 12" />
+            <path d="M18 6L6 18" />
+          </svg>
+        </button>
+      }
+    </div>
+  } @else {
+    <div
+      class="relative flex flex-col items-center gap-3 border border-dashed px-4 py-10 text-center transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-slate-50 hover:border-accent hover:bg-accent/5"
+      [class]="dragging() ? 'border-accent bg-accent/10' : 'border-slate-600'"
+    >
+      <svg
+        class="size-10 animate-bob text-accent"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M12 16V4" />
+        <path d="M7 9l5-5 5 5" />
+        <path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
+      </svg>
+      <label for="pdf-input" class="text-lg font-semibold">Drop a PDF here</label>
+      <p class="text-sm text-slate-300">or select this area to browse your files</p>
+      <p class="font-mono text-xs text-slate-400">PDF only · up to {{ store.maxFileSizeMb }} MB</p>
+      <!-- Covers the whole drop area: a click opens the picker, a dropped file lands in the input. -->
+      <input
+        id="pdf-input"
+        type="file"
+        accept="application/pdf,.pdf"
+        class="absolute inset-0 size-full cursor-pointer opacity-0"
+        (change)="onFile($event)"
+        (dragenter)="dragging.set(true)"
+        (dragleave)="dragging.set(false)"
+        (drop)="dragging.set(false)"
+      />
+    </div>
+  }
+
+  @if (store.fileError(); as error) {
+    <p role="alert" class="text-sm text-rose-300">{{ error }}</p>
+  }
+
+  @if (store.isIdle()) {
+    <button
+      type="button"
+      class="flex min-h-13 cursor-pointer items-center justify-center gap-2.5 border border-accent bg-accent px-5 py-3 font-bold tracking-[0.08em] text-slate-950 uppercase transition hover:-translate-y-px hover:shadow-[0_0_28px_-4px_var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-35 disabled:shadow-none"
+      [disabled]="!store.file()"
+      (click)="store.requestGenerate()"
+    >
+      Generate document
+      <svg
+        class="size-[18px]"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M5 12h14" />
+        <path d="M13 6l6 6-6 6" />
+      </svg>
+    </button>
+  }
+
+  @if (store.isRunning()) {
+    <button
+      type="button"
+      disabled
+      class="flex min-h-13 cursor-progress items-center justify-center gap-3 border border-slate-700 bg-slate-950 px-5 py-3 font-semibold tracking-[0.08em] text-slate-300 uppercase"
+    >
+      <span
+        class="size-4 animate-[dg-spin_0.8s_linear_infinite] rounded-full border-2 border-slate-700 border-t-tone"
+      ></span>
+      Generating
+    </button>
+  }
+
+  @if (store.isReady()) {
+    <button
+      type="button"
+      class="min-h-13 cursor-pointer border border-slate-700 px-5 py-3 font-semibold tracking-[0.08em] uppercase transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50"
+      (click)="store.reset()"
+    >
+      Generate another
+    </button>
+  }
+
+  @if (store.isFailed()) {
+    <div class="flex flex-wrap gap-3">
+      <button
+        type="button"
+        class="min-h-13 flex-[1_1_140px] cursor-pointer border border-accent bg-accent px-5 py-3 font-bold tracking-[0.08em] text-slate-950 uppercase transition hover:shadow-[0_0_28px_-4px_var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50"
+        (click)="store.requestGenerate()"
+      >
+        Try again
+      </button>
+      <button
+        type="button"
+        class="min-h-13 flex-[1_1_140px] cursor-pointer border border-slate-700 px-5 py-3 font-semibold tracking-[0.08em] uppercase transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50"
+        (click)="store.reset()"
+      >
+        New file
+      </button>
+    </div>
+  }
+
+  <div class="mt-auto flex items-start gap-3 border-t border-slate-800 pt-5 text-sm text-slate-300">
+    <svg
+      class="mt-px size-5 shrink-0 text-warn"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 4l9 16H3z" />
+      <path d="M12 10v4" />
+      <path d="M12 17h.01" />
+    </svg>
+    <p>{{ note }}</p>
+  </div>
+</section>

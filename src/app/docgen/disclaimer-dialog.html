@@ -1,0 +1,56 @@
+<dialog
+  [appModal]="store.disclaimerOpen()"
+  (dismissed)="cancel()"
+  aria-labelledby="disclaimer-title"
+  class="m-auto max-h-[calc(100dvh-2rem)] w-[min(35rem,calc(100vw-2rem))] overflow-y-auto border border-slate-700 bg-slate-900 text-slate-200 shadow-[0_0_60px_-12px_var(--warn)] backdrop:bg-slate-950/80 backdrop:backdrop-blur-[3px] open:animate-pop open:backdrop:animate-fade"
+>
+  <div class="relative flex flex-col gap-6 p-8">
+    <span class="absolute top-0 left-0 size-3.5 border-t-2 border-l-2 border-warn"></span>
+    <span class="absolute right-0 bottom-0 size-3.5 border-r-2 border-b-2 border-warn"></span>
+
+    <div class="flex flex-col gap-1">
+      <p class="font-mono text-xs tracking-[0.18em] text-warn uppercase">Disclaimer</p>
+      <h2 id="disclaimer-title" class="text-[28px] leading-[1.15] font-bold">
+        Before you generate
+      </h2>
+    </div>
+
+    <div class="flex flex-col gap-3 border border-slate-800 bg-slate-950 p-4 text-[15px]">
+      @for (paragraph of paragraphs; track $index) {
+        <p>{{ paragraph }}</p>
+      }
+    </div>
+
+    <label
+      for="disclaimer-accept"
+      class="flex min-h-11 cursor-pointer items-center gap-3 font-medium"
+    >
+      <input
+        id="disclaimer-accept"
+        type="checkbox"
+        class="size-[22px] shrink-0 cursor-pointer accent-accent"
+        [checked]="accepted()"
+        (change)="onToggle($event)"
+      />
+      {{ acceptLabel }}
+    </label>
+
+    <div class="flex flex-wrap justify-end gap-3">
+      <button
+        type="button"
+        class="min-h-12 cursor-pointer border border-slate-700 px-6 py-3 text-[15px] font-semibold tracking-[0.08em] uppercase transition-colors hover:border-slate-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50"
+        (click)="cancel()"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="min-h-12 cursor-pointer border border-accent bg-accent px-6 py-3 text-[15px] font-bold tracking-[0.08em] text-slate-950 uppercase transition hover:shadow-[0_0_28px_-4px_var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50 disabled:cursor-not-allowed disabled:opacity-35 disabled:shadow-none"
+        [disabled]="!accepted()"
+        (click)="accept()"
+      >
+        Accept and generate
+      </button>
+    </div>
+  </div>
+</dialog>
