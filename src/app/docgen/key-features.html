@@ -1,0 +1,75 @@
+<section aria-labelledby="key-features-title" class="flex flex-col gap-3">
+  <h2 id="key-features-title" class="font-mono text-xs tracking-[0.18em] text-slate-400 uppercase">
+    Key features
+  </h2>
+
+  <!-- Tiles grow to fill each row: five across on a desktop, three and two on a tablet, pairs on a phone. -->
+  <ul class="flex flex-wrap gap-3">
+    @for (feature of features; track feature.title) {
+      <li
+        class="group flex min-w-0 flex-[1_1_150px] animate-rise items-start gap-3 sm:flex-col border border-slate-800 bg-slate-900/70 p-4 transition-colors hover:border-accent/60 sm:flex-[1_1_200px]"
+        [style.animation-delay.ms]="$index * 60"
+      >
+        <span
+          class="flex size-10 shrink-0 items-center justify-center border border-accent/50 bg-accent/10 text-accent transition-colors group-hover:border-accent"
+        >
+          <!-- Icons are drawn inline; add a case here when you add an icon name in docgen.content.ts. -->
+          <svg
+            class="size-5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            @switch (feature.icon) {
+              @case ('network') {
+                <!-- shield with a lock: nothing leaves the network -->
+                <path d="M12 3l7 2.8v5.4c0 4.3-2.9 8-7 9.8-4.1-1.8-7-5.5-7-9.8V5.8z" />
+                <path d="M9.5 11.5h5v3.8h-5z" />
+                <path d="M10.5 11.5v-1a1.5 1.5 0 0 1 3 0v1" />
+              }
+              @case ('speed') {
+                <!-- lightning bolt: fast generation -->
+                <path d="M13 3L5 13.5h6L10 21l9-11h-6.5z" />
+              }
+              @case ('tune') {
+                <!-- sliders: customisable model -->
+                <path d="M4 6h9" />
+                <path d="M17 6h3" />
+                <circle cx="15" cy="6" r="2" />
+                <path d="M4 12h3" />
+                <path d="M11 12h9" />
+                <circle cx="9" cy="12" r="2" />
+                <path d="M4 18h10" />
+                <path d="M18 18h2" />
+                <circle cx="16" cy="18" r="2" />
+              }
+              @case ('review') {
+                <!-- person with a tick: human in the loop -->
+                <circle cx="9" cy="8" r="3.5" />
+                <path d="M3 20c0-3.3 2.7-6 6-6 1.5 0 2.9.5 4 1.4" />
+                <path d="M15 17l2.2 2.2L21.5 15" />
+              }
+              @case ('premises') {
+                <!-- server rack: runs on your own infrastructure -->
+                <path d="M4 4.5h16v6H4z" />
+                <path d="M4 13.5h16v6H4z" />
+                <path d="M7.5 7.5h.01" />
+                <path d="M7.5 16.5h.01" />
+                <path d="M11 7.5h6" />
+                <path d="M11 16.5h6" />
+              }
+            }
+          </svg>
+        </span>
+        <div class="flex min-w-0 flex-col gap-1">
+          <h3 class="text-[15px] leading-snug font-semibold text-balance">{{ feature.title }}</h3>
+          <p class="hidden text-[13px] leading-snug text-slate-300 sm:block">{{ feature.text }}</p>
+        </div>
+      </li>
+    }
+  </ul>
+</section>

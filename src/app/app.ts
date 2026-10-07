@@ -1,10 +1,9 @@
 import { Component } from '@angular/core';
-
-import { DocgenPage } from './docgen/docgen-page';
+import { RouterOutlet } from '@angular/router';
 
 @Component({
   selector: 'app-root',
-  imports: [DocgenPage],
-  template: `<app-docgen-page />`,
+  imports: [RouterOutlet],
+  template: `<router-outlet />`,
 })
 export class App {}

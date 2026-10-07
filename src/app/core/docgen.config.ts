@@ -16,6 +16,14 @@ export interface DocgenConfig {
   streamUrl: (jobId: string) => string;
   /** Where the finished .docx is served. Used when the DRAFT_READY event has no `downloadUrl`. */
   downloadUrl: (jobId: string) => string;
+  /**
+   * Paged list of earlier jobs, newest first:
+   * GET jobsUrl?page=<zero-based page>&size=<jobsPageSize>.
+   * See `parseJobsPage` in docgen-api.ts for the response shapes it accepts.
+   */
+  jobsUrl: string;
+  /** How many jobs to ask for per page. */
+  jobsPageSize: number;
   /** Name of the multipart field that carries the file. */
   fileField: string;
   /** Largest PDF the page accepts, in megabytes. Keep it in line with the backend limit. */
@@ -34,6 +42,8 @@ export const DEFAULT_DOCGEN_CONFIG: DocgenConfig = {
   uploadUrl: '/api/documents',
   streamUrl: (jobId) => `/api/documents/${encodeURIComponent(jobId)}/events`,
   downloadUrl: (jobId) => `/api/documents/${encodeURIComponent(jobId)}/download`,
+  jobsUrl: '/api/documents',
+  jobsPageSize: 5,
   fileField: 'file',
   maxFileSizeMb: 25,
   streamReconnects: 3,

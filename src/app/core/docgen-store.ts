@@ -1,4 +1,4 @@
-import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
@@ -12,7 +12,7 @@ import {
   PHASE_OF_STATUS,
   RUNNING_PHASES,
 } from './docgen.models';
-import { saveBlob } from './save-blob';
+import { responseFileName, saveBlob } from './save-blob';
 
 /**
  * State for the document generation page.
@@ -34,8 +34,10 @@ export class DocgenStore {
   // --- state ---------------------------------------------------------------
   readonly file = signal<File | null>(null);
   readonly fileError = signal<string | null>(null);
-  /** The instructions popup opens on page load. */
-  readonly instructionsOpen = signal(true);
+  /** The instructions popup opens from the "How it works" button only. */
+  readonly instructionsOpen = signal(false);
+  /** False until the user has opened the instructions once; the button draws attention until then. */
+  readonly instructionsSeen = signal(false);
   readonly disclaimerOpen = signal(false);
   readonly phase = signal<DocgenPhase>('idle');
   readonly events = signal<DocgenLogEntry[]>([]);
@@ -82,6 +84,7 @@ export class DocgenStore {
 
   // --- instructions --------------------------------------------------------
   openInstructions(): void {
+    this.instructionsSeen.set(true);
     this.instructionsOpen.set(true);
   }
 
@@ -149,7 +152,10 @@ export class DocgenStore {
     try {
       const response = await firstValueFrom(this.api.download(url));
       if (!response.body) throw new Error('Empty response');
-      saveBlob(response.body, serverFileName(response) ?? this.eventFileName ?? this.outputName());
+      saveBlob(
+        response.body,
+        responseFileName(response) ?? this.eventFileName ?? this.outputName(),
+      );
     } catch {
       this.downloadError.set('The download did not go through. Try again.');
     } finally {
@@ -260,20 +266,6 @@ function formatSize(bytes: number): string {
   return bytes >= 1024 * 1024
     ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
     : `${Math.max(1, Math.round(bytes / 1024))} KB`;
-}
-
-/** File name from a Content-Disposition header, if the server sent (and exposed) one. */
-function serverFileName(response: HttpResponse<Blob>): string | null {
-  const header = response.headers.get('content-disposition') ?? '';
-  const encoded = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(header)?.[1];
-  if (encoded) {
-    try {
-      return decodeURIComponent(encoded);
-    } catch {
-      return encoded;
-    }
-  }
-  return /filename\s*=\s*"?([^";]+)"?/i.exec(header)?.[1]?.trim() ?? null;
 }
 
 function describe(error: unknown): string {

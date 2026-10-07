@@ -2,7 +2,7 @@
   [appModal]="store.instructionsOpen()"
   (dismissed)="store.closeInstructions()"
   aria-labelledby="instructions-title"
-  class="m-auto max-h-[calc(100dvh-2rem)] w-[min(35rem,calc(100vw-2rem))] overflow-y-auto border border-slate-700 bg-slate-900 text-slate-200 shadow-[0_0_60px_-12px_var(--accent)] backdrop:bg-slate-950/80 backdrop:backdrop-blur-[3px] open:animate-pop open:backdrop:animate-fade"
+  class="m-auto max-h-[calc(100dvh-2rem)] w-[min(35rem,calc(100vw-2rem))] overflow-y-auto border border-slate-700 bg-slate-900 text-slate-200 shadow-[0_0_60px_-12px_var(--accent)] backdrop:bg-scrim backdrop:backdrop-blur-[3px] open:animate-pop open:backdrop:animate-fade"
 >
   <!-- Padding lives on this wrapper: a click on the <dialog> element itself counts as a backdrop click. -->
   <div class="relative flex flex-col gap-6 p-8">

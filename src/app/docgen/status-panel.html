@@ -151,6 +151,7 @@
             {{ store.downloading() ? 'Downloading' : 'Download .docx' }}
           </button>
           <p class="font-mono text-xs text-slate-400 wrap-anywhere">{{ store.outputName() }}</p>
+          <p class="max-w-[46ch] text-[13px] text-slate-300">{{ retentionNote }}</p>
           @if (store.downloadError(); as error) {
             <p role="alert" class="text-sm text-rose-300">{{ error }}</p>
           }

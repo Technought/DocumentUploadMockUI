@@ -1,6 +1,7 @@
 // Local stand-in for the real backend so the page can be tried end to end.
 // No dependencies: `node mock-server.mjs`, then `npm start` in another terminal.
 //
+//   GET  /api/documents?page=0&size=5   earlier jobs, newest first, in Spring Data's Page shape
 //   POST /api/documents                 multipart upload      -> { "jobId": "..." }
 //   GET  /api/documents/:id/events      text/event-stream     -> QUEUED, PROCESSING, RETRYING, PROCESSING, DRAFT_READY
 //   GET  /api/documents/:id/download    the generated .docx
@@ -21,8 +22,68 @@ const option = (name, fallback) => {
 const PORT = Number(option('port', process.env.PORT ?? 8080));
 const STATIC_DIR = option('static', null);
 
-/** jobId -> { fileName, fail } */
+/** jobId -> { fileName, fail, status, createdAt, message } */
 const jobs = new Map();
+
+// A few earlier jobs so the "Previous jobs" list and its paging have something to show.
+const HOUR = 3600 * 1000;
+[
+  ['supplier-agreement.pdf', 'DRAFT_READY', 1.5],
+  ['board-minutes-march.pdf', 'DRAFT_READY', 2.2],
+  ['scanned-invoice-batch.pdf', 'FAILED', 3.1],
+  ['policy-handbook-v4.pdf', 'DRAFT_READY', 4.6],
+  ['lease-renewal.pdf', 'DRAFT_READY', 6.0],
+  ['audit-findings.pdf', 'DRAFT_READY', 7.4],
+  ['tender-response.pdf', 'FAILED', 9.3],
+  ['onboarding-checklist.pdf', 'DRAFT_READY', 11.0],
+  ['nda-template.pdf', 'DRAFT_READY', 13.5],
+  ['quarterly-forecast.pdf', 'DRAFT_READY', 16.2],
+  ['site-inspection.pdf', 'DRAFT_READY', 19.8],
+  ['training-manual.pdf', 'DRAFT_READY', 22.5],
+].forEach(([fileName, status, hoursAgo], index) => {
+  jobs.set(`seed${index + 1}`, {
+    fileName,
+    fail: status === 'FAILED',
+    status,
+    createdAt: new Date(Date.now() - hoursAgo * HOUR).toISOString(),
+    message: status === 'FAILED' ? 'The PDF could not be converted.' : undefined,
+  });
+});
+
+function newJob(fileName) {
+  const jobId = Math.random().toString(36).slice(2, 10);
+  const entry = {
+    fileName,
+    fail: /fail/i.test(fileName),
+    status: 'QUEUED',
+    createdAt: new Date().toISOString(),
+  };
+  jobs.set(jobId, entry);
+  return { jobId, entry };
+}
+
+/** One page of jobs, newest first, shaped like Spring Data's Page. */
+function jobsPage(page, size) {
+  const all = [...jobs.entries()]
+    .map(([jobId, job]) => ({
+      jobId,
+      fileName: job.fileName,
+      status: job.status,
+      createdAt: job.createdAt,
+      message: job.message,
+    }))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const totalPages = Math.ceil(all.length / size);
+  return {
+    content: all.slice(page * size, page * size + size),
+    number: page,
+    size,
+    totalElements: all.length,
+    totalPages,
+    first: page === 0,
+    last: page >= totalPages - 1,
+  };
+}
 
 const DOCX_BASE64 =
   'UEsDBBQAAAAIALRcRl15bjPX6AAAAK0BAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbH1QyU7DMBD9FWuuKHHggBCK0wPLETiUDxjZk8SqN3nc0v49Tlt6QIXjzFv1+tXeO7GjzDYGBbdtB4KCjsaGScHn+rV5AMEFg0EXAyk4EMNq6NeHRCyqNrCCuZT0KCXrmTxyGxOFiowxeyz1zJNMqDc4kbzrunupYygUSlMWDxj6Zxpx64p42df3qUcmxyCeTsQlSwGm5KzGUnG5C+ZXSnNOaKvyyOHZJr6pBJBXExbk74Cz7r0Ok60h8YG5vKGvLPkVs5Em6q2vyvZ/mys94zhaTRf94pZy1MRcF/euvSAebfjpL49zD99QSwMEFAAAAAgAtFxGXZv9N+qtAAAAKQEAAAsAAABfcmVscy8ucmVsc43POw7CMAwG4KtE3mlaBoRQ0y4IqSsqB7ASN61oHkrCo7cnAwNFDIy2f3+W6/ZpZnanECdnBVRFCYysdGqyWsClP232wGJCq3B2lgQsFKFt6jPNmPJKHCcfWTZsFDCm5A+cRzmSwVg4TzZPBhcMplwGzT3KK2ri27Lc8fBpwNpknRIQOlUB6xdP/9huGCZJRydvhmz6ceIrkWUMmpKAhwuKq3e7yCzwpuarF5sXUEsDBBQAAAAIALRcRl2nJutkxgAAABcBAAARAAAAd29yZC9kb2N1bWVudC54bWxFj7FuwzAMRH+F0F7L7RAUhu1s3bo1Q0dFomMjFimQct38fSUXRZdHEHc4Hvvzd1zhC0UXpsE8N60BJM9hodtgLh9vT68GNDsKbmXCwTxQzXns9y6w3yJShhJA2u2DmXNOnbXqZ4xOG05IRZtYostllZvdWUIS9qha8uNqX9r2ZKNbyNTIK4dHnalCKvL4zv4OQdyUYRKOkGeElb1bIVZFUUr5Bj55E7g6f0cKIJg3IT28gsX617Xpbc2slIPp4O9d+//T+ANQSwECFAMUAAAACAC0XEZdeW4z1+gAAACtAQAAEwAAAAAAAAAAAAAAgAEAAAAAW0NvbnRlbnRfVHlwZXNdLnhtbFBLAQIUAxQAAAAIALRcRl2b/TfqrQAAACkBAAALAAAAAAAAAAAAAACAARkBAABfcmVscy8ucmVsc1BLAQIUAxQAAAAIALRcRl2nJutkxgAAABcBAAARAAAAAAAAAAAAAACAAe8BAAB3b3JkL2RvY3VtZW50LnhtbFBLBQYAAAAAAwADALkAAADkAgAAAAA=';
@@ -79,6 +140,8 @@ function streamStatuses(request, response, job, jobId) {
 
   const timers = timeline.map(([delay, data], index) =>
     setTimeout(() => {
+      job.status = data.status;
+      job.message = data.message;
       // Same wire format as Spring's SseEmitter.event().name("status").data(object).
       response.write(`event: status\ndata: ${JSON.stringify({ jobId, ...data })}\n\n`);
       if (index === timeline.length - 1) response.end();
@@ -97,23 +160,24 @@ function serveStatic(pathname, response) {
 }
 
 const server = createServer(async (request, response) => {
-  const { pathname } = new URL(request.url, 'http://localhost');
+  const { pathname, searchParams } = new URL(request.url, 'http://localhost');
   const job = /^\/api\/documents\/([^/]+)\/(events|download)$/.exec(pathname);
 
+  if (request.method === 'GET' && pathname === '/api/documents') {
+    const page = Math.max(0, Number(searchParams.get('page')) || 0);
+    const size = Math.min(50, Math.max(1, Number(searchParams.get('size')) || 5));
+    return sendJson(response, 200, jobsPage(page, size));
+  }
+
   if (request.method === 'POST' && pathname === '/api/documents') {
-    const fileName = uploadedFileName(await readBody(request));
-    const jobId = Math.random().toString(36).slice(2, 10);
-    jobs.set(jobId, { fileName, fail: /fail/i.test(fileName) });
-    console.log(`upload  ${fileName} -> job ${jobId}`);
+    const { jobId, entry } = newJob(uploadedFileName(await readBody(request)));
+    console.log(`upload  ${entry.fileName} -> job ${jobId}`);
     return sendJson(response, 200, { jobId });
   }
 
   if (request.method === 'POST' && pathname === '/api/documents/stream') {
-    const fileName = uploadedFileName(await readBody(request));
-    const jobId = Math.random().toString(36).slice(2, 10);
-    const entry = { fileName, fail: /fail/i.test(fileName) };
-    jobs.set(jobId, entry);
-    console.log(`upload+stream  ${fileName} -> job ${jobId}`);
+    const { jobId, entry } = newJob(uploadedFileName(await readBody(request)));
+    console.log(`upload+stream  ${entry.fileName} -> job ${jobId}`);
     return streamStatuses(request, response, entry, jobId);
   }
 

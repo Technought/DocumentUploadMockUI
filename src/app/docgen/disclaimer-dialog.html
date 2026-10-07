@@ -2,7 +2,7 @@
   [appModal]="store.disclaimerOpen()"
   (dismissed)="cancel()"
   aria-labelledby="disclaimer-title"
-  class="m-auto max-h-[calc(100dvh-2rem)] w-[min(35rem,calc(100vw-2rem))] overflow-y-auto border border-slate-700 bg-slate-900 text-slate-200 shadow-[0_0_60px_-12px_var(--warn)] backdrop:bg-slate-950/80 backdrop:backdrop-blur-[3px] open:animate-pop open:backdrop:animate-fade"
+  class="m-auto max-h-[calc(100dvh-2rem)] w-[min(35rem,calc(100vw-2rem))] overflow-y-auto border border-slate-700 bg-slate-900 text-slate-200 shadow-[0_0_60px_-12px_var(--warn)] backdrop:bg-scrim backdrop:backdrop-blur-[3px] open:animate-pop open:backdrop:animate-fade"
 >
   <div class="relative flex flex-col gap-6 p-8">
     <span class="absolute top-0 left-0 size-3.5 border-t-2 border-l-2 border-warn"></span>
@@ -41,7 +41,7 @@
         class="min-h-12 cursor-pointer border border-slate-700 px-6 py-3 text-[15px] font-semibold tracking-[0.08em] uppercase transition-colors hover:border-slate-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50"
         (click)="cancel()"
       >
-        Cancell
+        Cancel
       </button>
       <button
         type="button"

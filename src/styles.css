@@ -10,20 +10,115 @@
 @import '@fontsource/jetbrains-mono/500.css';
 @import '@fontsource/jetbrains-mono/700.css';
 
-/* Change the look from here: one accent plus the three status colours. */
-:root {
-  color-scheme: dark;
-  --accent: #22d3ee; /* cyan-400 */
-  --warn: #fbbf24; /* amber-400: retrying */
-  --ok: #34d399; /* emerald-400: draft ready */
-  --err: #fb7185; /* rose-400: failed */
-  --tone: #94a3b8; /* colour of the current status; set per phase by the status panel */
+/*
+ * Everything the component needs is scoped to .docgen (the host of <app-docgen-page>),
+ * so the rest of the app keeps its own colours and fonts.
+ * Change the look from here: one accent plus the three status colours.
+ */
+@layer components {
+  .docgen {
+    color-scheme: dark;
+    --accent: #22d3ee; /* cyan-400 */
+    --warn: #fbbf24; /* amber-400: retrying */
+    --ok: #34d399; /* emerald-400: draft ready */
+    --err: #fb7185; /* rose-400: failed */
+    --idle: #94a3b8; /* slate-400: nothing running */
+    --tone: var(--idle); /* colour of the current status; set per phase by DocgenPage */
+    --ground: #020617; /* slate-950: page background */
+    --ink: #e2e8f0; /* slate-200: body text */
+    --grid-dot: #1e293b; /* dots of the drifting background grid */
+    --scrim: rgb(2 6 23 / 0.8); /* veil behind the popups */
+    --font-sans: 'Chakra Petch', 'Trebuchet MS', sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+    position: relative;
+    isolation: isolate;
+    display: block;
+    min-height: 100dvh;
+    overflow: clip;
+    background-color: var(--ground);
+    color: var(--ink);
+    transition:
+      background-color 0.25s ease,
+      color 0.25s ease;
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /*
+   * Light theme (the toggle in the header sets data-theme="light" on the host).
+   * Deliberately not white: a soft grey-blue ground with slightly lighter panels keeps glare down,
+   * and every text colour below still clears 4.5:1 against both.
+   */
+  .docgen[data-theme='light'] {
+    color-scheme: light;
+    --accent: #0a6072;
+    --warn: #8a4b08;
+    --ok: #0b6646;
+    --err: #ad1638;
+    --idle: #566170;
+    --ground: #d8dee6;
+    --ink: #1c2430;
+    --grid-dot: #bcc4cf;
+    --scrim: rgb(40 50 64 / 0.5);
+
+    /*
+     * The templates are written with Tailwind's slate scale (bg-slate-900, text-slate-300, ...).
+     * Re-pointing that scale inside .docgen flips every utility at once, without touching a template:
+     * the dark end becomes the surfaces, the light end becomes the text.
+     */
+    --color-slate-950: #d8dee6; /* page ground, and text on filled buttons */
+    --color-slate-900: #e4e8ee; /* panels */
+    --color-slate-800: #c2c9d4; /* hairlines, tracks */
+    --color-slate-700: #909baa; /* control borders */
+    --color-slate-600: #7f8b9c; /* dashed drop area */
+    --color-slate-400: #4f5a6a; /* labels, muted text */
+    --color-slate-300: #38424f; /* secondary text */
+    --color-slate-200: #1c2430; /* body text */
+    --color-slate-50: #0f1722; /* strongest text, focus rings */
+    --color-rose-300: #a3122f; /* error messages */
+  }
+
+  /*
+   * Animated background, two layers behind the content. Both move with transform only,
+   * so the browser animates them on the compositor without repainting the page.
+   */
+
+  /* Layer 1: the dot grid drifts slowly on the diagonal. */
+  .docgen::before {
+    content: '';
+    position: absolute;
+    inset: -24px; /* one grid cell of overscan, so the drift never shows an edge */
+    z-index: -1;
+    pointer-events: none;
+    background-image: radial-gradient(var(--grid-dot) 1px, transparent 1px);
+    background-size: 24px 24px;
+    animation: dg-grid-drift 14s linear infinite;
+  }
+
+  /* Layer 2: a faint scan band in the status colour sweeps down the page. */
+  .docgen::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background-image: linear-gradient(
+      to bottom,
+      transparent,
+      color-mix(in srgb, var(--tone) 9%, transparent),
+      transparent
+    );
+    background-repeat: no-repeat;
+    background-size: 100% 220px;
+    transform: translateY(-220px); /* resting place: off-screen (also the reduced-motion state) */
+    animation: dg-scan 11s linear infinite;
+  }
 }
 
 @theme {
-  --font-sans: 'Chakra Petch', 'Trebuchet MS', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
-
   --animate-rise: dg-rise 0.3s ease-out both;
   --animate-fade: dg-fade 0.2s ease-out both;
   --animate-pop: dg-pop 0.3s cubic-bezier(0.2, 1.2, 0.4, 1) both;
@@ -37,6 +132,7 @@
   --animate-bob: dg-bob 2s ease-in-out infinite;
   --animate-bob-fast: dg-bob 1.4s ease-in-out infinite;
   --animate-draw: dg-draw 0.5s 0.15s ease-out both;
+  --animate-beacon: dg-beacon 1.8s ease-out infinite;
 }
 
 /* Lets utilities such as text-accent, border-tone or bg-ok/10 follow the variables above. */
@@ -46,14 +142,7 @@
   --color-ok: var(--ok);
   --color-err: var(--err);
   --color-tone: var(--tone);
-}
-
-@layer base {
-  body {
-    @apply bg-slate-950 font-sans text-base leading-normal text-slate-200 antialiased;
-    background-image: radial-gradient(#1e293b 1px, transparent 1px);
-    background-size: 24px 24px;
-  }
+  --color-scrim: var(--scrim);
 }
 
 /* Cuts a disc down to a ring, so a conic gradient reads as a sweeping arc. */
@@ -64,6 +153,29 @@
   mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
 }
 
+@keyframes dg-grid-drift {
+  to {
+    transform: translate3d(24px, 24px, 0);
+  }
+}
+@keyframes dg-scan {
+  from {
+    transform: translateY(-220px);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+/* Attention ring around the "How it works" button until it has been opened once. */
+@keyframes dg-beacon {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 70%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 14px transparent;
+  }
+}
 @keyframes dg-spin {
   to {
     transform: rotate(360deg);

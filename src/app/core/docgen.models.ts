@@ -28,6 +28,30 @@ export interface DocgenLogEntry {
   message: string;
 }
 
+/** One earlier job, as shown in the "Previous jobs" list. */
+export interface DocgenJob {
+  id: string;
+  fileName: string;
+  /** `UNKNOWN` when the backend sends a status this page does not recognise. */
+  status: DocgenStatus | 'UNKNOWN';
+  createdAt: Date | null;
+  /** Optional note from the backend, for example why a job failed. */
+  message?: string;
+  /** Where to fetch the .docx, if the backend includes it in the list. */
+  downloadUrl?: string;
+}
+
+/** One page of the job list. Pages are zero-based, as in Spring's Pageable. */
+export interface DocgenJobsPage {
+  jobs: DocgenJob[];
+  page: number;
+  /** null when the backend does not report totals. */
+  totalPages: number | null;
+  totalJobs: number | null;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
 export const PHASE_OF_STATUS: Record<DocgenStatus, DocgenPhase> = {
   QUEUED: 'queued',
   PROCESSING: 'processing',

@@ -19,8 +19,48 @@ export function instructionSteps(maxFileSizeMb: number): { title: string; text: 
       title: 'Download the draft',
       text: 'When the status reads Draft ready, download the .docx and review it.',
     },
+    {
+      title: 'Find earlier drafts',
+      text: 'Previous jobs lists your earlier runs. Files are deleted from the server daily, so download what you need.',
+    },
   ];
 }
+
+/** Icons available to the key features strip (drawn inline in key-features.html, no icon package). */
+export type FeatureIcon = 'network' | 'speed' | 'tune' | 'review' | 'premises';
+
+/** The key features shown under the page header. Edit the wording here. */
+export const KEY_FEATURES: { icon: FeatureIcon; title: string; text: string }[] = [
+  {
+    icon: 'network',
+    title: 'No data leaves your network',
+    text: 'PDFs and drafts are processed inside your network. Nothing is sent outside it.',
+  },
+  {
+    icon: 'speed',
+    title: 'Faster, consistent generation',
+    text: 'Drafts arrive quickly and follow the same structure every time.',
+  },
+  {
+    icon: 'tune',
+    title: 'Fully customisable model',
+    text: 'The model can be tuned to your templates, terminology and rules.',
+  },
+  {
+    icon: 'review',
+    title: 'Human in the loop',
+    text: 'A person reviews every draft before it is used.',
+  },
+  {
+    icon: 'premises',
+    title: 'Secure, private, on-premises',
+    text: 'Runs on your own infrastructure, under your access controls.',
+  },
+];
+
+/** Shown with the job list and next to the Download button. */
+export const RETENTION_NOTE =
+  'Files are deleted from the server every day. Download the drafts you want to keep.';
 
 /**
  * Body of the disclaimer popup.

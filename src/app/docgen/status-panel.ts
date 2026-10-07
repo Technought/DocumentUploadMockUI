@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 
 import { DocgenStore } from '../core/docgen-store';
+import { RETENTION_NOTE } from '../core/docgen.content';
 import { DocgenPhase, DocgenStatus } from '../core/docgen.models';
 
 type StepKind = 'todo' | 'done' | 'active' | 'warn' | 'ok' | 'error';
@@ -65,6 +66,7 @@ const LOG_COLOR: Record<DocgenStatus, string> = {
 export class StatusPanel {
   protected readonly store = inject(DocgenStore);
   protected readonly logColor = LOG_COLOR;
+  protected readonly retentionNote = RETENTION_NOTE;
 
   /** Which ring animation to show. */
   protected readonly ring = computed(() => RING_OF_PHASE[this.store.phase()]);

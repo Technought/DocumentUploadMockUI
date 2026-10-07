@@ -1,10 +1,10 @@
 import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { EventSourceMessage, fetchEventSource } from '@microsoft/fetch-event-source';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 
 import { DOCGEN_CONFIG } from './docgen.config';
-import { DocgenStatus, DocgenStatusEvent } from './docgen.models';
+import { DocgenJob, DocgenJobsPage, DocgenStatus, DocgenStatusEvent } from './docgen.models';
 
 export interface GenerateHandlers {
   /** Called once the backend has assigned a job id. */
@@ -92,6 +92,65 @@ export function parseStatusEvent(message: EventSourceMessage): DocgenStatusEvent
   };
 }
 
+function count(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+function date(value: unknown): Date | null {
+  if (typeof value !== 'string' && typeof value !== 'number') return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function parseJob(raw: unknown): DocgenJob | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const item = raw as Record<string, unknown>;
+  const id = text(item['jobId'] ?? item['id']);
+  if (!id) return null;
+  return {
+    id,
+    fileName: text(item['fileName'] ?? item['filename'] ?? item['name']) ?? `Job ${id}`,
+    status: toStatus(item['status'] ?? item['state']) ?? 'UNKNOWN',
+    createdAt: date(item['createdAt'] ?? item['submittedAt'] ?? item['created']),
+    message: text(item['message'] ?? item['error']),
+    downloadUrl: text(item['downloadUrl'] ?? item['url']),
+  };
+}
+
+/**
+ * Turns the job list response into one page. Accepts:
+ *
+ *   Spring Data `Page`        {"content":[...],"number":0,"size":5,"totalElements":12,"totalPages":3}
+ *   Spring Data `PagedModel`  {"content":[...],"page":{"number":0,"size":5,"totalElements":12,"totalPages":3}}
+ *   a bare list               [...] or {"items":[...]}  (Next stays enabled while a page comes back full)
+ *
+ * Each job needs `jobId` (or `id`) and `status`; `fileName`, `createdAt`, `message` and
+ * `downloadUrl` are optional.
+ */
+export function parseJobsPage(raw: unknown, requestedPage: number, size: number): DocgenJobsPage {
+  const body = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const list = Array.isArray(raw) ? raw : (body['content'] ?? body['items'] ?? body['jobs']);
+  const jobs = (Array.isArray(list) ? list : [])
+    .map(parseJob)
+    .filter((job): job is DocgenJob => job !== null);
+
+  const nested = body['page'];
+  const meta = (nested && typeof nested === 'object' ? nested : body) as Record<string, unknown>;
+  const page = count(meta['number']) ?? requestedPage;
+  const totalJobs = count(meta['totalElements'] ?? meta['total']);
+  const totalPages =
+    count(meta['totalPages']) ?? (totalJobs === null ? null : Math.ceil(totalJobs / size));
+
+  return {
+    jobs,
+    page,
+    totalPages,
+    totalJobs,
+    hasPrevious: page > 0,
+    hasNext: totalPages === null ? jobs.length >= size : page + 1 < totalPages,
+  };
+}
+
 @Injectable({ providedIn: 'root' })
 export class DocgenApi {
   private readonly http = inject(HttpClient);
@@ -129,6 +188,14 @@ export class DocgenApi {
       signal,
       this.config.streamReconnects,
     );
+  }
+
+  /** Fetches one page of earlier jobs. `page` is zero-based. */
+  listJobs(page: number): Observable<DocgenJobsPage> {
+    const size = this.config.jobsPageSize;
+    return this.http
+      .get<unknown>(this.config.jobsUrl, { params: { page, size } })
+      .pipe(map((raw) => parseJobsPage(raw, page, size)));
   }
 
   /** Fetches the finished document as a blob, with the response headers. */

@@ -1,0 +1,240 @@
+<section
+  aria-labelledby="previous-jobs-title"
+  class="flex flex-col gap-4 border border-slate-800 bg-slate-900 p-6"
+>
+  <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+    <div class="flex items-baseline gap-3">
+      <h2
+        id="previous-jobs-title"
+        class="font-mono text-xs tracking-[0.18em] text-slate-400 uppercase"
+      >
+        Previous jobs
+      </h2>
+      @if (jobs.totalLabel(); as total) {
+        <span class="font-mono text-xs text-slate-400 tabular-nums">{{ total }}</span>
+      }
+    </div>
+
+    <button
+      type="button"
+      class="flex min-h-11 cursor-pointer items-center gap-2 border border-slate-700 px-3 font-mono text-xs tracking-wider text-slate-300 uppercase transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50 disabled:cursor-progress disabled:opacity-60"
+      [disabled]="jobs.loading()"
+      (click)="jobs.reload()"
+    >
+      <svg
+        class="size-4"
+        [class]="jobs.loading() ? 'animate-[dg-spin_0.8s_linear_infinite]' : ''"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M20 12a8 8 0 1 1-2.3-5.6" />
+        <path d="M20 4v4.5h-4.5" />
+      </svg>
+      Refresh
+    </button>
+  </div>
+
+  <!-- Retention note: files do not stay on the server. -->
+  <p
+    class="flex items-start gap-3 border border-warn/40 bg-warn/5 px-4 py-3 text-sm text-slate-200"
+  >
+    <svg
+      class="mt-px size-5 shrink-0 text-warn"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+    <span>{{ retentionNote }}</span>
+  </p>
+
+  @if (jobs.failed()) {
+    <div role="alert" class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-rose-300">
+      <span>The job list could not be loaded.</span>
+      <button
+        type="button"
+        class="min-h-11 cursor-pointer border border-slate-700 px-4 font-semibold tracking-wider text-slate-200 uppercase transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50"
+        (click)="jobs.reload()"
+      >
+        Try loading again
+      </button>
+    </div>
+  }
+
+  @if (jobs.isEmpty()) {
+    <p class="font-mono text-[13px] text-slate-400">
+      No previous jobs. Documents you generate are listed here.
+    </p>
+  } @else if (!jobs.data() && jobs.loading()) {
+    <p class="font-mono text-[13px] text-slate-400">Loading previous jobs.</p>
+  }
+
+  <!-- The current page stays on screen, dimmed, while the next one loads. -->
+  <ul
+    class="flex flex-col transition-opacity"
+    [class.opacity-50]="jobs.loading()"
+    [attr.aria-busy]="jobs.loading()"
+  >
+    @for (job of jobs.jobs(); track job.id) {
+      <li class="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-slate-800 py-3">
+        <div class="flex min-w-0 flex-[1_1_260px] items-center gap-3">
+          <span
+            class="flex size-10 shrink-0 items-center justify-center border border-slate-700 font-mono text-[10px] font-bold tracking-wider text-slate-300"
+          >
+            PDF
+          </span>
+          <div class="flex min-w-0 flex-col gap-0.5">
+            <p class="font-medium wrap-anywhere">{{ job.fileName }}</p>
+            <p class="font-mono text-xs text-slate-400 tabular-nums">
+              @if (job.createdAt) {
+                {{ job.createdAt | date: 'd MMM y, HH:mm' }}
+              } @else {
+                Date not available
+              }
+            </p>
+            @if (job.status === 'FAILED' && job.message) {
+              <p class="text-[13px] text-rose-300">{{ job.message }}</p>
+            }
+            @if (jobs.downloadError(); as error) {
+              @if (error.id === job.id) {
+                <p role="alert" class="text-[13px] text-rose-300">{{ error.message }}</p>
+              }
+            }
+          </div>
+        </div>
+
+        <p
+          class="w-28 font-mono text-xs tracking-wider uppercase"
+          [class]="statusColor[job.status]"
+        >
+          {{ statusLabel[job.status] }}
+        </p>
+
+        <div class="flex min-h-11 w-36 items-center sm:justify-end">
+          @if (job.status === 'DRAFT_READY') {
+            <button
+              type="button"
+              class="flex min-h-11 cursor-pointer items-center gap-2 border border-ok/70 px-4 text-sm font-semibold tracking-wider text-ok uppercase transition-colors hover:bg-ok hover:text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50 disabled:cursor-progress disabled:opacity-60"
+              [attr.aria-label]="'Download draft for ' + job.fileName"
+              [disabled]="jobs.downloadingId() !== null"
+              (click)="jobs.download(job)"
+            >
+              @if (jobs.downloadingId() === job.id) {
+                <span
+                  class="size-4 animate-[dg-spin_0.8s_linear_infinite] rounded-full border-2 border-ok/30 border-t-ok"
+                ></span>
+                Saving
+              } @else {
+                <svg
+                  class="size-[18px]"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M12 4v12" />
+                  <path d="M7 11l5 5 5-5" />
+                  <path d="M5 20h14" />
+                </svg>
+                Download
+              }
+            </button>
+          } @else if (job.status === 'FAILED') {
+            <span
+              class="flex items-center gap-2 text-sm font-semibold tracking-wider text-err uppercase"
+            >
+              <svg
+                class="size-6"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="9" />
+                <path d="M9 9l6 6" />
+                <path d="M15 9l-6 6" />
+              </svg>
+              No file
+            </span>
+          } @else if (isRunning(job)) {
+            <span class="flex items-center gap-2 text-sm text-slate-300">
+              <span
+                class="size-4 animate-[dg-spin_0.8s_linear_infinite] rounded-full border-2 border-slate-700 border-t-accent"
+              ></span>
+              In progress
+            </span>
+          }
+        </div>
+      </li>
+    }
+  </ul>
+
+  @if (jobs.data()) {
+    <nav
+      aria-label="Previous jobs pages"
+      class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 pt-4"
+    >
+      <p class="font-mono text-xs text-slate-400 tabular-nums" aria-live="polite">
+        {{ jobs.pageLabel() }}
+      </p>
+      <div class="flex gap-3">
+        <button
+          type="button"
+          class="flex min-h-11 cursor-pointer items-center gap-1.5 border border-slate-700 px-4 text-sm font-semibold tracking-wider uppercase transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-slate-700 disabled:hover:text-inherit"
+          [disabled]="!jobs.hasPrevious() || jobs.loading()"
+          (click)="jobs.previous()"
+        >
+          <svg
+            class="size-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+          Previous
+        </button>
+        <button
+          type="button"
+          class="flex min-h-11 cursor-pointer items-center gap-1.5 border border-slate-700 px-4 text-sm font-semibold tracking-wider uppercase transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:border-slate-700 disabled:hover:text-inherit"
+          [disabled]="!jobs.hasNext() || jobs.loading()"
+          (click)="jobs.next()"
+        >
+          Next
+          <svg
+            class="size-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </button>
+      </div>
+    </nav>
+  }
+</section>

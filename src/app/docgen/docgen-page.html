@@ -1,7 +1,4 @@
-<div
-  class="mx-auto flex min-h-dvh w-full max-w-[1200px] flex-col gap-6 px-4 pt-6 pb-10 sm:px-6"
-  [class]="tone()"
->
+<div class="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-4 pt-6 pb-10 sm:px-6">
   <header class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-5">
     <div class="flex items-center gap-3">
       <div class="flex size-10 items-center justify-center border border-accent text-accent">
@@ -37,10 +34,12 @@
         ></span>
         Stream {{ store.stream() }}
       </div>
+      <!-- Theme toggle: shows the theme it switches to. The choice is remembered on this device. -->
       <button
         type="button"
-        class="flex min-h-11 cursor-pointer items-center gap-2 border border-slate-700 bg-slate-900 px-4 text-sm font-medium tracking-wider uppercase transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50"
-        (click)="store.openInstructions()"
+        class="flex min-h-11 cursor-pointer items-center gap-2 border border-slate-700 bg-slate-900 px-3 font-mono text-xs tracking-wider text-slate-300 uppercase transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50"
+        [attr.aria-label]="theme.isLight() ? 'Switch to dark theme' : 'Switch to light theme'"
+        (click)="theme.toggle()"
       >
         <svg
           class="size-[18px]"
@@ -52,18 +51,65 @@
           stroke-linejoin="round"
           aria-hidden="true"
         >
+          @if (theme.isLight()) {
+            <!-- moon -->
+            <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" />
+          } @else {
+            <!-- sun -->
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2.5v2.5" />
+            <path d="M12 19v2.5" />
+            <path d="M2.5 12H5" />
+            <path d="M19 12h2.5" />
+            <path d="M5.3 5.3l1.8 1.8" />
+            <path d="M16.9 16.9l1.8 1.8" />
+            <path d="M5.3 18.7l1.8-1.8" />
+            <path d="M16.9 7.1l1.8-1.8" />
+          }
+        </svg>
+        {{ theme.isLight() ? 'Dark' : 'Light' }}
+      </button>
+
+      <!-- Filled in the accent colour so it stands out; it also pulses until it has been opened once. -->
+      <button
+        type="button"
+        class="relative flex min-h-11 cursor-pointer items-center gap-2 border border-accent bg-accent px-4 text-sm font-bold tracking-wider text-slate-950 uppercase transition hover:shadow-[0_0_28px_-4px_var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-50"
+        [class.animate-beacon]="!store.instructionsSeen()"
+        (click)="store.openInstructions()"
+      >
+        <svg
+          class="size-[18px]"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
           <circle cx="12" cy="12" r="9" />
           <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 1-1 1.7" />
           <path d="M12 17h.01" />
         </svg>
         How it works
+        @if (!store.instructionsSeen()) {
+          <span class="absolute -top-1.5 -right-1.5 flex size-3.5" aria-hidden="true">
+            <span class="absolute inset-0 animate-ping-ring rounded-full bg-warn"></span>
+            <span class="relative size-3.5 rounded-full border-2 border-slate-950 bg-warn"></span>
+          </span>
+        }
       </button>
     </div>
   </header>
 
-  <main class="flex flex-wrap items-stretch gap-6">
-    <app-upload-panel class="min-w-0 flex-[1_1_320px]" />
-    <app-status-panel class="min-w-0 flex-[2_1_480px]" />
+  <app-key-features />
+
+  <main class="flex flex-col gap-6">
+    <div class="flex flex-wrap items-stretch gap-6">
+      <app-upload-panel class="min-w-0 flex-[1_1_320px]" />
+      <app-status-panel class="min-w-0 flex-[2_1_480px]" />
+    </div>
+    <app-previous-jobs />
   </main>
 </div>
 
